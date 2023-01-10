@@ -4,4 +4,6 @@ Basic components (and, or, not gates) in Verilog were used to create more comple
 
 Registers and a Memory component were also used to create circuits for instruction fetch, instruction decode, instruction execute, memory and writeback to allow for a pipelined implementation for processing RISCV instructions.
 
+The datapath built for this project can handle the following instructions: and, or, add, sub, slt, addi, lw, sw, beq, and jal.
+
 The RISCV code used to test this CPU is also provided along with their binary representations.
