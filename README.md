@@ -1,4 +1,4 @@
-This code was part of the EECS 2021 course for York University. The optional prelabs provided helped guide the process of writing this code.
+This code was part of the EECS 2021 course for York University. The optional prelabs helped guide the process of writing this code.
 
 Basic components (and, or, not gates) in Verilog were used to create more complex systems such as multiplexers and ALUs (with adding, subtracting and comparing functionalities). 
 
