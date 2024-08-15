@@ -72,9 +72,9 @@ module yID (
     );
 
     // Jump target address calculation for UJ-Type instructions
-    assign zerosj = 12'h000;              // Zero constant for UJ-Type
+    assign zerosj = 12'h000;             // Zero constant for UJ-Type
     assign onesj = 12'hFFF;              // One constant for UJ-Type
-    assign jTarget[19] = ins[31];         // Sign bit for upper part of jump target
+    assign jTarget[19] = ins[31];        // Sign bit for upper part of jump target
     assign jTarget[18:11] = ins[19:12];  // Middle part of jump target
     assign jTarget[10] = ins[20];        // Additional part of jump target
     assign jTarget[9:0] = ins[30:21];    // Lower part of jump target

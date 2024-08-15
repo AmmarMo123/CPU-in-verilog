@@ -21,16 +21,16 @@ module yAlu (
 
     // Perform bitwise AND operation
     and ab_and[31:0] (
-        zAnd,   // Output: a AND b
-        a,      // Input: operand a
-        b       // Input: operand b
+        zAnd,
+        a,
+        b
     );
 
     // Perform bitwise OR operation
     or ab_or[31:0] (
-        zOr,    // Output: a OR b
-        a,      // Input: operand a
-        b       // Input: operand b
+        zOr,
+        a,
+        b
     );
 
     // Compute the zero flag
@@ -43,41 +43,43 @@ module yAlu (
 
     // Perform set-less-than operation
     xor slt_xor (
-        condition,  // Output: condition for SLT (set-less-than)
-        a[31],      // Input: sign bit of operand a
-        b[31]       // Input: sign bit of operand b
+        condition,
+        a[31],
+        b[31]
     );
+
     yArith slt_arith (
-        aSubB,      // Output: result of a - b
-        cout,       // Output: carry-out
-        a,          // Input: operand a
-        b,          // Input: operand b
-        1'b1        // Input: ctrl = 1 for subtraction
+        .z(aSubB),
+        .cout(cout),
+        .a(a),
+        .b(b),
+        .ctrl(1'b1)
     );
+
     yMux1 my_mux_slt (
-        slt[0],     // Output: least significant bit of SLT result
-        aSubB[31],  // Input: result if condition is true
-        a[31],      // Input: result if condition is false
-        condition    // Input: condition to select between inputs
+        .z(slt[0]),
+        .a(aSubB[31]),
+        .b(a[31]),
+        .c(condition)
     );
 
     // Perform arithmetic operations (add or subtract)
     yArith ab_arith[31:0] (
-        zArith,     // Output: result of arithmetic operations
-        cout,       // Output: carry-out
-        a,          // Input: operand a
-        b,          // Input: operand b
-        op[2]       // Input: control signal (add or subtract)
+        .z(zArith),
+        .cout(cout),
+        .a(a),
+        .b(b),
+        .ctrl(op[2])
     );
 
     // Select between the results based on the op code
     yMux4to1 #(.SIZE(32)) my_mux (
-        z,          // Output: final result of the selected operation
-        zAnd,       // Input: result of AND operation
-        zOr,        // Input: result of OR operation
-        zArith,     // Input: result of arithmetic operation
-        slt,        // Input: result of SLT operation
-        op[1:0]     // Input: operation code to select the result
+        .z(z),
+        .a0(zAnd),
+        .a1(zOr),
+        .a2(zArith),
+        .a3(slt),
+        .c(op[1:0])
     );
 
 endmodule

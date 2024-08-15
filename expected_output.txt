@@ -1,0 +1,44 @@
+// Expected output after running execute.v
+00000f33: rd1= 0 rd2= 0 z=  0 zero=1 wb= 0
+00000433: rd1= 0 rd2= 0 z=  0 zero=1 wb= 0
+00000533: rd1= 0 rd2= 0 z=  0 zero=1 wb= 0
+000f2283: rd1= 0 rd2= 0 z=  0 zero=1 wb= 1
+00028563: rd1= 1 rd2= 0 z=  1 zero=0 wb= 1
+00540433: rd1= 0 rd2= 1 z=  1 zero=0 wb= 1
+00556533: rd1= 0 rd2= 1 z=  1 zero=0 wb= 1
+004f0f13: rd1= 0 rd2= x z=  4 zero=0 wb= 4
+ff7ff06f: rd1= x rd2= x z=  x zero=x wb= x
+000f2283: rd1= 4 rd2= 0 z=  4 zero=0 wb= 3
+00028563: rd1= 3 rd2= 0 z=  3 zero=0 wb= 3
+00540433: rd1= 1 rd2= 3 z=  4 zero=0 wb= 4
+00556533: rd1= 1 rd2= 3 z=  3 zero=0 wb= 3
+004f0f13: rd1= 4 rd2= x z=  8 zero=0 wb= 8
+ff7ff06f: rd1= x rd2= x z=  x zero=x wb= x
+000f2283: rd1= 8 rd2= 0 z=  8 zero=0 wb= 5
+00028563: rd1= 5 rd2= 0 z=  5 zero=0 wb= 5
+00540433: rd1= 4 rd2= 5 z=  9 zero=0 wb= 9
+00556533: rd1= 3 rd2= 5 z=  7 zero=0 wb= 7
+004f0f13: rd1= 8 rd2= x z= 12 zero=0 wb=12
+ff7ff06f: rd1= x rd2= x z=  x zero=x wb= x
+000f2283: rd1=12 rd2= 0 z= 12 zero=0 wb= 7
+00028563: rd1= 7 rd2= 0 z=  7 zero=0 wb= 7
+00540433: rd1= 9 rd2= 7 z= 16 zero=0 wb=16
+00556533: rd1= 7 rd2= 7 z=  7 zero=0 wb= 7
+004f0f13: rd1=12 rd2= x z= 16 zero=0 wb=16
+ff7ff06f: rd1= x rd2= x z=  x zero=x wb= x
+000f2283: rd1=16 rd2= 0 z= 16 zero=0 wb= 9
+00028563: rd1= 9 rd2= 0 z=  9 zero=0 wb= 9
+00540433: rd1=16 rd2= 9 z= 25 zero=0 wb=25
+00556533: rd1= 7 rd2= 9 z= 15 zero=0 wb=15
+004f0f13: rd1=16 rd2= x z= 20 zero=0 wb=20
+ff7ff06f: rd1= x rd2= x z=  x zero=x wb= x
+000f2283: rd1=20 rd2= 0 z= 20 zero=0 wb=11
+00028563: rd1=11 rd2= 0 z= 11 zero=0 wb=11
+00540433: rd1=25 rd2=11 z= 36 zero=0 wb=36
+00556533: rd1=15 rd2=11 z= 15 zero=0 wb=15
+004f0f13: rd1=20 rd2= x z= 24 zero=0 wb=24
+ff7ff06f: rd1= x rd2= x z=  x zero=x wb= x
+000f2283: rd1=24 rd2= 0 z= 24 zero=0 wb= 0
+00028563: rd1= 0 rd2= 0 z=  0 zero=1 wb= 0
+02802023: rd1= 0 rd2=36 z= 32 zero=0 wb=32
+02a02223: rd1= 0 rd2=15 z= 36 zero=0 wb=36

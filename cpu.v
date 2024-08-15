@@ -176,7 +176,7 @@ module yArith (
     wire cin;
 
     // Generate the bitwise negation of b
-    not b_not[31:0](
+    not b_not[31:0] (
         notB,
         b
     );
@@ -184,11 +184,11 @@ module yArith (
     // Multiplexer to select between b and ~b based on ctrl signal
     // If ctrl = 0, tmp = b (for addition)
     // If ctrl = 1, tmp = ~b (for subtraction)
-    yMux #(.SIZE(32)) my_mux[31:0](
-        tmp,
-        b,
-        notB,
-        ctrl
+    yMux #(.SIZE(32)) my_mux[31:0] (
+        .z(tmp),
+        .a(b),
+        .b(notB),
+        .c(ctrl)
     );
 
     // Assign carry-in for the adder from ctrl
@@ -196,12 +196,12 @@ module yArith (
 
     // 32-bit adder to compute z = a + tmp
     // cout is the carry-out bit
-    yAdder my_add[31:0](
-        z,
-        cout,
-        a,
-        tmp, // Input: operand b or ~b
-        cin 
+    yAdder my_add[31:0] (
+        .z(z),
+        .cout(cout),
+        .a(a),
+        .b(tmp),
+        .cin(cin)
     );
 
 endmodule
@@ -229,16 +229,16 @@ module yAlu (
 
     // Perform bitwise AND operation
     and ab_and[31:0] (
-        zAnd,   // Output: a AND b
-        a,      // Input: operand a
-        b       // Input: operand b
+        zAnd,
+        a,
+        b
     );
 
     // Perform bitwise OR operation
     or ab_or[31:0] (
-        zOr,    // Output: a OR b
-        a,      // Input: operand a
-        b       // Input: operand b
+        zOr,
+        a,
+        b
     );
 
     // Compute the zero flag
@@ -251,41 +251,43 @@ module yAlu (
 
     // Perform set-less-than operation
     xor slt_xor (
-        condition,  // Output: condition for SLT (set-less-than)
-        a[31],      // Input: sign bit of operand a
-        b[31]       // Input: sign bit of operand b
+        condition,
+        a[31],
+        b[31]
     );
+
     yArith slt_arith (
-        aSubB,      // Output: result of a - b
-        cout,       // Output: carry-out
-        a,          // Input: operand a
-        b,          // Input: operand b
-        1'b1        // Input: ctrl = 1 for subtraction
+        .z(aSubB),
+        .cout(cout),
+        .a(a),
+        .b(b),
+        .ctrl(1'b1)
     );
+
     yMux1 my_mux_slt (
-        slt[0],     // Output: least significant bit of SLT result
-        aSubB[31],  // Input: result if condition is true
-        a[31],      // Input: result if condition is false
-        condition    // Input: condition to select between inputs
+        .z(slt[0]),
+        .a(aSubB[31]),
+        .b(a[31]),
+        .c(condition)
     );
 
     // Perform arithmetic operations (add or subtract)
     yArith ab_arith[31:0] (
-        zArith,     // Output: result of arithmetic operations
-        cout,       // Output: carry-out
-        a,          // Input: operand a
-        b,          // Input: operand b
-        op[2]       // Input: control signal (add or subtract)
+        .z(zArith),
+        .cout(cout),
+        .a(a),
+        .b(b),
+        .ctrl(op[2])
     );
 
     // Select between the results based on the op code
     yMux4to1 #(.SIZE(32)) my_mux (
-        z,          // Output: final result of the selected operation
-        zAnd,       // Input: result of AND operation
-        zOr,        // Input: result of OR operation
-        zArith,     // Input: result of arithmetic operation
-        slt,        // Input: result of SLT operation
-        op[1:0]     // Input: operation code to select the result
+        .z(z),
+        .a0(zAnd),
+        .a1(zOr),
+        .a2(zArith),
+        .a3(slt),
+        .c(op[1:0])
     );
 
 endmodule
@@ -532,9 +534,9 @@ module yID (
     );
 
     // Jump target address calculation for UJ-Type instructions
-    assign zerosj = 12'h000;              // Zero constant for UJ-Type
+    assign zerosj = 12'h000;             // Zero constant for UJ-Type
     assign onesj = 12'hFFF;              // One constant for UJ-Type
-    assign jTarget[19] = ins[31];         // Sign bit for upper part of jump target
+    assign jTarget[19] = ins[31];        // Sign bit for upper part of jump target
     assign jTarget[18:11] = ins[19:12];  // Middle part of jump target
     assign jTarget[10] = ins[20];        // Additional part of jump target
     assign jTarget[9:0] = ins[30:21];    // Lower part of jump target

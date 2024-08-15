@@ -14,7 +14,7 @@ module yArith (
     wire cin;
 
     // Generate the bitwise negation of b
-    not b_not[31:0](
+    not b_not[31:0] (
         notB,
         b
     );
@@ -22,11 +22,11 @@ module yArith (
     // Multiplexer to select between b and ~b based on ctrl signal
     // If ctrl = 0, tmp = b (for addition)
     // If ctrl = 1, tmp = ~b (for subtraction)
-    yMux #(.SIZE(32)) my_mux[31:0](
-        tmp,
-        b,
-        notB,
-        ctrl
+    yMux #(.SIZE(32)) my_mux[31:0] (
+        .z(tmp),
+        .a(b),
+        .b(notB),
+        .c(ctrl)
     );
 
     // Assign carry-in for the adder from ctrl
@@ -34,12 +34,12 @@ module yArith (
 
     // 32-bit adder to compute z = a + tmp
     // cout is the carry-out bit
-    yAdder my_add[31:0](
-        z,
-        cout,
-        a,
-        tmp, // Input: operand b or ~b
-        cin 
+    yAdder my_add[31:0] (
+        .z(z),
+        .cout(cout),
+        .a(a),
+        .b(tmp),
+        .cin(cin)
     );
 
 endmodule
