@@ -5,13 +5,20 @@ Designed a fully pipelined 5-stage processor from the scratch, starting with bas
 
 ## Interacting with the processor
 The processor built interacts with the outside world through four channels: 
-- The clock signal (input)
-- The interrupt signal (input)
-- The entry point signal (input)
-- The BIU (Bus Interface Unit in yIF and yDM) (input and output) 
+- The clock signal (input).
+- The interrupt signal (input).
+- The entry point signal (input).
+- The BIU (Bus Interface Unit in yIF and yDM) (input and output).
 
 ## Testing the processor
-The processor was tested using a sample RISC-V program, with register values being read to confirm it operates as expected.
+The processor was tested using a sample RISC-V program (`ram.dat` and `testbed_program.asm`), with register values being read to confirm it operates as expected.
+The program in `ram.dat` is used to initialize memory, and the processor executes the instructions from there. When the component is first instantiated, it looks (in the current working directory) for that file, and if present, it reads its content to initialize the memory words. Each record in the file holds an address, content pair:
+```
+@a c // optional comment
+```
+The address a must be prefixed with @ and is followed by the content c. Both values must be in hex and are separated by whitespace. The record may end with an in-line comment using the // separator.
+
+`execute.v` simulates the execution of the processor, and prints out the values stored in the registers that hold the final result of the test bench.
 
 ## Running the processor
 All modules have been consolidated into `cpu.v` so that it can be easily compiled, eliminating the need to manage multiple files during the compilation process.
