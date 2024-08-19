@@ -417,46 +417,56 @@ module mem (
 
 endmodule
 
-// Instruction Fetch Module
-// This module fetches instructions from memory and computes the next PC value.
+// Instruction Fetch (IF) Module
+// This module handles fetching instructions from memory, updating the program counter (PC), and calculating the next PC.
 module yIF (
-    output [31:0] ins,    // Instruction fetched from memory
-    output [31:0] PCp4,   // Program Counter + 4 (next address)
-    input [31:0] PCin,    // Program Counter input
-    input clk             // Clock signal
+    output [31:0] ins,   // Fetched instruction from memory
+    output [31:0] PC,    // Current program counter value
+    output [31:0] PCp4,  // Program counter + 4 (next instruction address)
+    input [31:0] PCin,   // Input for updating the program counter
+    input clk            // Clock signal
 );
 
     // Internal signals
-    wire zerflag;
-    wire [31:0] regOut;
+    wire zero;
+    wire read, write;
+    wire enable;
+    wire [31:0] a;
+    wire [31:0] memIn;
+    wire [2:0] add;
 
-    // Register to hold the current Program Counter value
-    register #(32) my_reg (
-        .q(regOut),
+    // Assign constants
+    assign enable = 1'b1;    // Enable the PC register to update
+    assign a = 32'h0004;     // Constant value 4 for PC increment
+    assign add = 3'b010;     // ALU operation: 010 for addition
+    assign read = 1'b1;      // Enable memory read operation
+    assign write = 1'b0;     // Disable memory write operation
+
+    // Program Counter Register
+    register #(32) pcReg (
+        .q(PC),
         .d(PCin),
         .clk(clk),
-        .enable(1'b1)
+        .enable(enable)
     );
 
-    // ALU to compute the next Program Counter value (PC + 4)
-    // The ALU adds 4 to the current PC value to compute PCp4
-    yAlu pc_inc (
-        .z(PCp4),
-        .ex(zerflag),
-        .a(regOut),
-        .b(32'd4),
-        .op(3'b010)
-    );
-
-    // Memory module to fetch the instruction from memory
-    // The memIn port is not connected as this module only reads data
-    mem data (
+    // Instruction Memory
+    mem insMem (
         .memOut(ins),
-        .address(regOut),
-        .memIn(32'b0),
+        .address(PC),
+        .memIn(memIn),
         .clk(clk),
-        .memRead(1'b1),
-        .memWrite(1'b0)
+        .memRead(read),
+        .memWrite(write)
+    );
+
+    // ALU for calculating PC + 4
+    yAlu myAlu (
+        .z(PCp4),
+        .ex(zero),
+        .a(a),
+        .b(PC),
+        .op(add)
     );
 endmodule
 
@@ -624,4 +634,336 @@ module yWB (
         .b(memOut),
         .c(Mem2Reg)
     );
+endmodule
+
+// Program Counter (PC) Module
+// This module computes the next value of the Program Counter (PC) based on different control signals 
+// such as interrupts, branching, and jumping.
+module yPC (
+    output [31:0] PCin,        // Next PC value to be used in the next clock cycle
+    input [31:0] PC,           // Current PC value
+    input [31:0] PCp4,         // PC + 4 (next sequential instruction address)
+    input INT,                 // Interrupt signal
+    input [31:0] entryPoint,   // Entry point address (used for interrupt handling)
+    input [31:0] branchImm,    // Immediate value for branching
+    input [31:0] jImm,         // Immediate value for jumping
+    input zero,                // Zero flag (used to determine branch condition)
+    input isbranch,            // Branch control signal
+    input isjump               // Jump control signal
+);
+
+    // Internal signals
+    wire [31:0] branchImmX4;
+    wire [31:0] jImmX4;
+    wire [31:0] jImmX4PPCp4;
+    wire [31:0] bTarget;
+    wire [31:0] choiceA, choiceB;
+    wire doBranch;
+    wire zf;
+    wire [2:0] add;
+
+    // Assign constants
+    assign enable = 1'b1;    // Enable the PC register to update
+    assign a = 32'h0004;     // Constant value 4 for PC increment
+    assign add = 3'b010;     // ALU operation: 010 for addition
+
+    // Shifting branch immediate left by 2 bits (multiply by 4)
+    assign branchImmX4[31:2] = branchImm[29:0];
+    assign branchImmX4[1:0] = 2'b00;
+
+    // Shifting jump immediate left by 2 bits (multiply by 4)
+    assign jImmX4[31:2] = jImm[29:0];
+    assign jImmX4[1:0] = 2'b00;
+
+    // Calculate branch target address by adding PC and branchImmX4
+    yAlu bALU (
+        .z(bTarget), 
+        .ex(zf), 
+        .a(PC), 
+        .b(branchImmX4), 
+        .op(add)
+    );
+
+    // Calculate jump target address by adding PC and jImmX4
+    yAlu jALU (
+        .z(jImmX4PPCp4), 
+        .ex(zf), 
+        .a(PC), 
+        .b(jImmX4), 
+        .op(add)
+    );
+
+    // Determine whether to branch (isbranch AND zero)
+    and decide_doBranch(doBranch, isbranch, zero);
+
+    // First Mux: Choose between sequential PC (PCp4) and branch target (bTarget)
+    yMux #(32) mux1 (
+        .z(choiceA), 
+        .a(PCp4), 
+        .b(bTarget), 
+        .c(doBranch)
+    );
+
+    // Second Mux: Choose between previous choice (choiceA) and jump target (jImmX4PPCp4)
+    yMux #(32) mux2 (
+        .z(choiceB), 
+        .a(choiceA), 
+        .b(jImmX4PPCp4), 
+        .c(isjump)
+    );
+
+    // Third Mux: Choose between previous choice (choiceB) and entry point (entryPoint) based on interrupt
+    yMux #(32) mux3 (
+        .z(PCin), 
+        .a(choiceB), 
+        .b(entryPoint), 
+        .c(INT)
+    );
+endmodule
+
+// Control Unit Module (yC1)
+// This module decodes the operation code (opCode) to generate control signals
+// for different instruction types: S-Type, R-Type, I-Type, LW, JUMP, and BRANCH.
+module yC1 (
+    output isStype,    // Signal indicating S-Type instruction
+    output isRtype,    // Signal indicating R-Type instruction
+    output isItype,    // Signal indicating I-Type instruction
+    output isLw,       // Signal indicating LW instruction
+    output isjump,     // Signal indicating JUMP instruction (UJ-Type)
+    output isbranch,   // Signal indicating BRANCH instruction (SB-Type)
+    input [6:0] opCode // 7-bit operation code input
+);
+
+    // opCode
+    // lw      0000011
+    // I-Type  0010011
+    // R-Type  0110011
+    // SB-Type 1100011 beq
+    // UJ-Type 1101111 jal
+    // S-Type  0100011
+
+    // Detect UJ-type
+    assign isjump= opCode[3];
+
+    // Detect lw
+    or lw_detect(lwor, opCode[6], opCode[5], opCode[4], opCode[3], opCode[2]); not (isLw, lwor);
+
+    // Select between S-Type and I-Type
+    xor s_i_xor(ISselect, opCode[6], opCode[3], opCode[2], opCode[1], opCode[0]);
+    and s_and(isStype, ISselect, opCode[5]);
+    and i_and(isItype, ISselect, opCode[4]);
+
+    // Detect R-Type
+    and r_and(isRtype, opCode[5], opCode[4]);
+
+    // Select between JAL and Branch
+    and JB_and(JBselect, opCode[6], opCode[5]); // SB and UJ are the only ones with bits 5 and 6
+    not branch_detect(sbz, opCode[3]); // SB has 0 in bits 2 and 3
+    and branch_and(isbranch, JBselect, sbz);
+endmodule
+
+// Control Unit Module (yC2)
+// This module generates control signals for register writing, ALU source selection,
+// memory reading, memory writing, and memory-to-register selection based on instruction
+// types set from yC1.
+module yC2 (
+    output RegWrite,   // Signal to enable writing to a register
+    output ALUSrc,     // Signal to select ALU source (immediate vs. register)
+    output MemRead,    // Signal to enable memory read operation
+    output MemWrite,   // Signal to enable memory write operation
+    output Mem2Reg,    // Signal to select data from memory to write to register
+    input isStype,     // Input: S-Type instruction indicator
+    input isRtype,     // Input: R-Type instruction indicator
+    input isItype,     // Input: I-Type instruction indicator
+    input isLw,        // Input: Load Word (LW) instruction indicator
+    input isjump,      // Input: Jump (UJ-Type) instruction indicator
+    input isbranch     // Input: Branch (SB-Type) instruction indicator
+);
+
+    // ALUSrc is 1 for I-Type and sw and UJ
+    // Mem2Reg is 1 for lw
+    // RegWrite is 1 for R-format and lw and UJ
+    // MemRead is 1 for lw
+    // MemWrite is 1 for sw
+
+    nor (ALUSrc, isRtype, isbranch);			//0 - do calculation; 1 - add immediate
+    nor (RegWrite, isStype, isbranch);			//need to write to a register
+
+    assign Mem2Reg = isLw;
+    assign MemRead = isLw;
+    assign MemWrite = isStype;
+endmodule
+
+// Control Unit Module (yC3)
+// This module generates the ALUop, which determines non-R-type instructions 
+module yC3 (
+    output [1:0] ALUop, // 2-bit ALU operation code
+    input isRtype,      // Input: R-Type instruction indicator
+    input isbranch      // Input: Branch instruction indicator
+);
+
+    // Generate the ALU operation code based on the instruction type
+    assign ALUop[1] = isRtype;
+    assign ALUop[0] = isbranch;
+endmodule
+
+// ALU Control Unit (yC4)
+// This module generates the final ALU operation code (op) based on ALUop and funct3 inputs.
+module yC4 (
+    output [2:0] op,       // 3-bit ALU operation code
+    input [1:0] ALUop,     // 2-bit ALU operation code generated by yC2
+    input [2:0] funct3     // 3-bit function code from the instruction
+);
+
+    wire f21out, f10out, upperAndOut, notALU, notf3;
+
+    // Bit 2 of the ALU operation code
+    xor f21 (f21out, funct3[2], funct3[1]);
+    and upperAnd(upperAndOut, ALUop[1], f21out);
+    or upperOr(op[2], ALUop[0], upperAndOut);
+
+    // Bit 1 of the ALU operation code
+    not ALUop1no(notALU, ALUop[1]);
+    not f3no(notf3, funct3[1]);
+    or lowerOr(op[1], notALU, notf3);
+
+    // Bit 0 of the ALU operation code
+    xor f10 (f10out, funct3[1], funct3[0]);
+    and lowerAnd(op[0], ALUop[1], f10out);
+endmodule
+
+// Top-level Processor Module (yChip)
+// This module integrates all the stages of the processor pipeline: Instruction Fetch (IF), 
+// Instruction Decode (ID), Execution (EX), Data Memory (DM), and Write-Back (WB). 
+// It controls the flow of instructions through the processor.
+module yChip (
+    output [31:0] ins,       // Current instruction (Added only for testing purposes)
+    output [31:0] rd2,       // Data from the second register operand (Added only for testing purposes)
+    output [31:0] wb,        // Data to be written back to the register file (Added only for testing purposes)
+    input [31:0] entryPoint, // Starting address for the program
+    input INT,               // Interrupt signal
+    input clk                // Clock signal
+);
+
+    // Internal signals
+    wire [31:0] PCin, PC, wd, rd1, imm, PCp4, z, branch, jTarget, memOut;
+    wire [2:0] op, funct3;
+    wire [6:0] opCode;
+    wire zero;
+    wire isStype, isRtype, isItype, isLw, isjump, isbranch;
+    wire RegWrite, ALUSrc, MemRead, MemWrite, Mem2Reg;
+    wire [1:0] ALUop;
+
+    // Instruction Fetch (IF) Stage
+    yIF myIF(
+        .ins(ins), 
+        .PC(PC), 
+        .PCp4(PCp4), 
+        .PCin(PCin), 
+        .clk(clk)
+    );
+
+    // Instruction Decode (ID) Stage
+    yID myID(
+        .rd1(rd1), 
+        .rd2(rd2), 
+        .immOut(imm), 
+        .jTarget(jTarget), 
+        .branch(branch), 
+        .ins(ins), 
+        .wd(wd), 
+        .RegWrite(RegWrite), 
+        .clk(clk)
+    );
+
+    // Execute (EX) Stage
+    yEX myEx(
+        .z(z), 
+        .zero(zero), 
+        .rd1(rd1), 
+        .rd2(rd2), 
+        .imm(imm), 
+        .op(op), 
+        .ALUSrc(ALUSrc)
+    );
+
+    // Data Memory (DM) Stage
+    yDM myDM(
+        .memOut(memOut), 
+        .exeOut(z), 
+        .rd2(rd2), 
+        .clk(clk), 
+        .MemRead(MemRead), 
+        .MemWrite(MemWrite)
+    );
+
+    // Write-Back (WB) Stage
+    yWB myWB(
+        .wb(wb), 
+        .exeOut(z), 
+        .memOut(memOut), 
+        .Mem2Reg(Mem2Reg)
+    );
+
+    // Program Counter (PC) Module
+    yPC myPC(
+        .PCin(PCin), 
+        .PC(PC), 
+        .PCp4(PCp4), 
+        .INT(INT), 
+        .entryPoint(entryPoint), 
+        .branchImm(branch), 
+        .jImm(jTarget), 
+        .zero(zero), 
+        .isbranch(isbranch), 
+        .isjump(isjump)
+    );
+
+    // Control Unit - Part 1: Decode opCode, generate 
+    // ALUSrc, RegWrite, Mem2Reg, MemRead, MemWrite, isjump
+    // and isbranch signals
+    assign opCode = ins[6:0];
+    yC1 myC1(
+        .isStype(isStype), 
+        .isRtype(isRtype), 
+        .isItype(isItype), 
+        .isLw(isLw), 
+        .isjump(isjump), 
+        .isbranch(isbranch), 
+        .opCode(opCode)
+    );
+
+    // Control Unit - Part 2: Set ALUSrc, RegWrite, Mem2Reg,
+    // MemRead and MemWrite based on the output of yC1
+    yC2 myC2(
+        .RegWrite(RegWrite), 
+        .ALUSrc(ALUSrc), 
+        .MemRead(MemRead), 
+        .MemWrite(MemWrite), 
+        .Mem2Reg(Mem2Reg), 
+        .isStype(isStype), 
+        .isRtype(isRtype), 
+        .isItype(isItype), 
+        .isLw(isLw), 
+        .isjump(isjump), 
+        .isbranch(isbranch)
+    );
+
+    // ALU Control Unit, yC3 and yC4 generate the opcode collabaratively.
+    // yC3, is responsible for non-R-type, and yC4 takes care of R-types.
+    yC3 myC3(
+        .ALUop(ALUop), 
+        .isRtype(isRtype), 
+        .isbranch(isbranch)
+    );
+
+    assign funct3 = ins[14:12];
+    yC4 myC4(
+        .op(op), 
+        .ALUop(ALUop), 
+        .funct3(funct3)
+    );
+
+    // Write-back Data Assignment
+    assign wd = wb;
 endmodule

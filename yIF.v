@@ -1,42 +1,52 @@
-// Instruction Fetch Module
-// This module fetches instructions from memory and computes the next PC value.
+// Instruction Fetch (IF) Module
+// This module handles fetching instructions from memory, updating the program counter (PC), and calculating the next PC.
 module yIF (
-    output [31:0] ins,    // Instruction fetched from memory
-    output [31:0] PCp4,   // Program Counter + 4 (next address)
-    input [31:0] PCin,    // Program Counter input
-    input clk             // Clock signal
+    output [31:0] ins,   // Fetched instruction from memory
+    output [31:0] PC,    // Current program counter value
+    output [31:0] PCp4,  // Program counter + 4 (next instruction address)
+    input [31:0] PCin,   // Input for updating the program counter
+    input clk            // Clock signal
 );
 
     // Internal signals
-    wire zerflag;
-    wire [31:0] regOut;
+    wire zero;
+    wire read, write;
+    wire enable;
+    wire [31:0] a;
+    wire [31:0] memIn;
+    wire [2:0] add;
 
-    // Register to hold the current Program Counter value
-    register #(32) my_reg (
-        .q(regOut),
+    // Assign constants
+    assign enable = 1'b1;    // Enable the PC register to update
+    assign a = 32'h0004;     // Constant value 4 for PC increment
+    assign add = 3'b010;     // ALU operation: 010 for addition
+    assign read = 1'b1;      // Enable memory read operation
+    assign write = 1'b0;     // Disable memory write operation
+
+    // Program Counter Register
+    register #(32) pcReg (
+        .q(PC),
         .d(PCin),
         .clk(clk),
-        .enable(1'b1)
+        .enable(enable)
     );
 
-    // ALU to compute the next Program Counter value (PC + 4)
-    // The ALU adds 4 to the current PC value to compute PCp4
-    yAlu pc_inc (
-        .z(PCp4),
-        .ex(zerflag),
-        .a(regOut),
-        .b(32'd4),
-        .op(3'b010)
-    );
-
-    // Memory module to fetch the instruction from memory
-    // The memIn port is not connected as this module only reads data
-    mem data (
+    // Instruction Memory
+    mem insMem (
         .memOut(ins),
-        .address(regOut),
-        .memIn(32'b0),
+        .address(PC),
+        .memIn(memIn),
         .clk(clk),
-        .memRead(1'b1),
-        .memWrite(1'b0)
+        .memRead(read),
+        .memWrite(write)
+    );
+
+    // ALU for calculating PC + 4
+    yAlu myAlu (
+        .z(PCp4),
+        .ex(zero),
+        .a(a),
+        .b(PC),
+        .op(add)
     );
 endmodule
