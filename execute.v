@@ -1,4 +1,3 @@
-
 module Execute;
     reg [31:0] entryPoint;
     reg clk, INT;
