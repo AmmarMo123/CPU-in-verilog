@@ -40,3 +40,5 @@ All modules have been consolidated into `cpu.v` so that it can be easily compile
 ## Visual recources
 Diagram used as reference, showcasing the components involved at each stage and their connections:
 <img width="456" alt="Screenshot 2024-08-19 at 7 03 54 AM" src="https://github.com/user-attachments/assets/e46dd392-94b3-4b5e-8126-1b67286847e0">
+
+(Credits: Computer Organization and Design by David A. Patterson and John L. Henessy)
