@@ -32,6 +32,7 @@ All modules have been consolidated into `cpu.v` so that it can be easily compile
 | sub	| sub rd rs1 rs2	| R-type	| 1101111	| 0x0	| 0x20 | rd = rs1 - rs2|
 | slt	| slt rd rs1 rs2	| R-type	| 1101111	| 0x2	| 0x00 | rd = (rs1 < rs2)?1:0|
 | addi	| addi rd, rs1, imm	| I-type	| 0010011	| 0x0	| imm[5:11]=0x00 | rd = rs1 + imm|
+| lw	| lw rd, imm(rs1)	| I-type	| 0000011	| 0x2 | N/A	| rd = M[rs1+imm][0:31] | 
 | sw	| sw rs2, imm(rs1)	| S-type	| 0100011	| 0x2	| N/A | M[rs1+imm][0:31] = rs2[0:31]|
 | beq	| beq rs1, rs2, label	| SB-type	| 1100011	| 0x0	| N/A | if (rs1 == rs2) PC += imm|
 | jal	| jal rd, label	| UJ-type	| 1101111	| 0x0	| N/A | rd = PC+4; PC += imm|
